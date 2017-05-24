@@ -1,0 +1,198 @@
+---
+title: "Annual sales estimation of an online black market"
+author: "David Denton"
+date: "5/18/2017"
+output: html_document
+---
+
+### Introduction
+
+The dark web is home to a multitude of Amazon-like marketplaces where one can purchase all manner of items, licit and illicit. One of the most famous of these sites is the Silk Road, a black market that sold illegal drugs until it was shut down by the United States FBI in October of 2013. One of the first of its kind, the Silk Road was structured as a Tor hidden serice and allowed anyone with a specialized web browser to purchase illegal drugs on the internet. [One study](https://www.andrew.cmu.edu/user/nicolasc/publications/Christin-WWW13.pdf) estimated that the site's annual revenue, based on data collected in 2011 and 2012, was \$14.4 Million U.S. Dollars. The ["Sealed Complaint 13 MAG 2328: United States of America v. Ross William Ulbricht"](https://krebsonsecurity.com/wp-content/uploads/2013/10/UlbrichtCriminalComplaint.pdf) suggests that annual revenues were even higher - approximately $80 Million.
+
+Since the Silk Road's demise, [imitators have proliferated](https://www.deepdotweb.com/dark-net-market-comparison-chart/). Are they as successful as the original? What is the annual revenue of similar sites in 2017? These questions are hard to answer as sales data is not easy to obtain. However, one of these black markets, which wil be referred to as DNM, publishes the quantity sold for each of it's listings. Scraping this data from the site will create a data set that can be used to estimate annual revenue, as well as identify the items that generate those sales.
+
+### Data collection and processing
+
+All active, non-auction, product listings from DNM were scraped in chunks between the dates of 4/17/17 and 5/13/17. The scraping was done with a Google Chrome extension developed by Martins Balodis. It can be found [here](https://chrome.google.com/webstore/detail/web-scraper/jnhgnonknehpejjnehehllkliplmbmhn). All of the resuting csv files are available in the github repository for this project. The JSON sitemap used for scraping is available there as well (DNM_sitemap.json).
+
+```{r echo = FALSE}
+setwd("~/Google Drive/code/R/projects/DNM")
+```
+
+Once collected, the csv files can be processed into a single, raw data set.
+
+Load required libraries.
+```{r message = FALSE}
+library(tidyverse)
+library(stringr)
+library(lubridate)
+library(ggthemes)
+library(scales)
+library(knitr)
+```
+
+Read scraped data from csv files and combine all records into a single table.
+```{r message = FALSE}
+#This function extracts the scrape date from the end of the filename and adds the value to a new column.
+read_func <- function(x){
+    read_csv(x) %>% mutate(scrape_date = ymd(str_extract(x, '[0-9]{8}')))
+}
+
+csv_list <- list.files('data', full.names = TRUE, pattern = '\\.csv$')
+
+raw_dat <- map_df(csv_list, read_func)
+```
+
+Most of the variables of interest (e.g. price, quantity sold, days for sale) are contained in text fields in the raw data. Regular expressions are used to extract these values from the strings. In most cases, the variables of interest appear only once. Price, however, is found in two separate fields - in the listing on the overview page, and on the detail page for the specific product. Occasionally, the two price values do not match. In these cases, the price on the detail page is used.
+
+The following code extracts the relevant data from the raw text, creates new sales variables based on quantity sold and time for sale, determines the most accurate prices in cases where a discrepancy exists, and subsets the table to include only the variables of analytical interest. A few of the new fields, those with a 'max' prefix, are explained in greater detail in the 'Analysis' section.
+
+```{r}
+price_func <- function(x,y){
+    detail_price <- as.numeric(gsub(',', '', str_extract(x, '[0-9]+.*$')))
+    listing_price <- as.numeric(gsub('[,|USD|\\s]', '', str_extract(y, 'USD\\s[[:graph:]]+\\s')))
+    listing_price <- ifelse(is.na(listing_price), 0, listing_price)
+    price <- ifelse(detail_price == 0 | is.na(detail_price), listing_price, detail_price)
+}
+
+dat <- raw_dat %>%
+    as_tibble(select(category_id, subcategory_id, subcategory2_id, listing_link-href, detail_name, 
+                     detail_qty_sold, listing_price, detail_price, listing_vendor, scrape_date)) %>%
+    mutate(qty_sold = str_extract(detail_qty_sold, '[0-9]{1,5} sold since.*20[0-9]{2}'),
+           quantity = as.numeric(str_extract(qty_sold, '^[0-9]{1,5}')),
+           date_str = str_extract(qty_sold, '[A-Z].*20[0-9]{2}'),
+           listing_date = mdy(date_str),
+           price = price_func(detail_price, listing_price),
+           days_for_sale = as.numeric(difftime(scrape_date, listing_date, units = c("days"))+1),
+           max_quantity = replace(quantity, quantity == 0, 1),
+           sales_in_period = price*quantity,
+           max_sales_in_period = price*max_quantity,
+           avg_daily_sales = sales_in_period/days_for_sale,
+           max_avg_daily_sales = max_sales_in_period/days_for_sale) %>%
+    select(product_category = category_id, product_subcategory = subcategory_id, 
+           product = subcategory2_id, product_listing = detail_name, listing_date, scrape_date, 
+           quantity, max_quantity, price, days_for_sale, sales_in_period, max_sales_in_period, 
+           avg_daily_sales, max_avg_daily_sales)
+```
+
+For reference, the category hierarchy is as follows: product_category > product_subcategory > product
+
+### Analysis
+
+A total of `r nrow(dat)` listings were scraped. These are all active, non-auction, product listings. The site lists a much higher number, typically between 200K and 300K, but most of these are inactive. There are some listings that were missed by the scraper, however. The listings on DNM were scraped by each individual product within each product subcategory. The site displays only the first 50 pages of listings for each of these products. In the few cases where all product listings cannot fit on 50 pages, some items were missed. This occured mostly within the 'Drugs & Chemicals' category. 'Psychedelics - LSD' and 'Ecstasy - MDMA', for example, exceed the 50 page limit. Fortunately, this seeems to have had little impact on the data. The listings are ordered by popularity, so the products that appear on the first 50 pages are the most actively sold. Using extremely precise search criteria to find some of the orphan product listings reveals mostly garbage listings composed of unreadable content, or products that have been listed for years without a sale.
+
+To estimate annual sales, three variables are required: price (P), quantity sold (QTY), and the number of days the listing has been active (DAYS).
+
+> $Avg\_daily\_sales = (P * QTY)/DAYS$.
+
+This value, multiplied by 365, yields an estimate of total annual sales for a given listing.
+
+While most of the product listings on DNM are listed for repeat sales, some are unique items that disappear once a sale is made. These listings would display a quantity sold of 0 until a sale is made and then the listing would be rendered inactive. To accomodate for this possibility, two annual sales estimates are made. The first uses the actual quantity sold and the second, using the 'max_' variables created during data processing, presumes a quanity sold of 1 for every listing that currently displays 0.
+
+```{r}
+sum_dat <- dat %>%
+    summarise(total_avg_daily_sales = sum(avg_daily_sales),
+              total_annual_sales = total_avg_daily_sales*365,
+              max_total_avg_daily_sales = sum(max_avg_daily_sales),
+              max_total_annual_sales = max_total_avg_daily_sales*365)
+```
+```{r echo = FALSE}
+append_dollar <- function(x, ...){
+    x <- round(x, 0)
+    sprintf("$%s",
+            format(x, ...))
+}
+
+sum_dat_print <-
+    map_df(sum_dat,
+           append_dollar,
+           big.mark = ",")
+
+kable(sum_dat_print, caption = "Summary sales statistics", align=rep('c', 4))
+```
+
+Actual annual revenues are likely close to the average of the two estimates above. As such, DNM will generate approximately **\$`r round(mean(c(sum_dat$total_annual_sales/1000000, sum_dat$max_total_annual_sales/1000000)),0)` million** in 2017. The average commision percentage for the darknet markets listed at [deepdotweb](https://www.deepdotweb.com/dark-net-market-comparison-chart/) is **3.6%**. Assuming this figure is accurate, the operators of DNM stand to earn approximately **$14 million**. These sales figures are significantly higher than the most generous estimates of The Silk Road's revenues. Given this dramatic increase and the overall proliferation of darknet markets, it seems clear that online black markets have experienced tremendous growth in the years since the Silk Road was taken down by the FBI.
+
+### Charts
+
+A few simple charts can help indicate which products are most commonly purchased at DNM. The following bar chart illustrates how much each product category contributes to the site's overall annual sales.
+
+```{r echo = FALSE, fig.align = 'center', fig.height = 4, fig.width = 7.5}
+p_cat_plot <- dat %>%
+    group_by(product_category) %>%
+    summarise(avg_annual_sales = sum((avg_daily_sales + max_avg_daily_sales)/2)*365) %>%
+    ggplot(aes(x = reorder(product_category, avg_annual_sales), y = avg_annual_sales/1000000)) +
+    geom_bar(stat = 'identity', fill = 'dodgerblue4', alpha = 0.85) +
+    ggtitle("Annual sales by product category") +
+    theme_tufte(base_family = 'Tahoma') +
+    theme(panel.grid.major = element_line(size = 0.1, color = "grey"),
+          axis.text.y = element_text(size = 10),
+          axis.text.x = element_text(size = 10),
+          axis.title.x=element_blank(), axis.title.y=element_blank(),
+          plot.title = element_text(hjust = 0.5, face = 'bold')) +
+    scale_y_continuous(labels = dollar_format(suffix = 'M')) +
+    coord_flip()
+
+p_cat_plot
+```
+
+The Drugs & Chemicals category clearly generates the vast majority of the sales at DNM. Overall, **`r round((dat %>% filter(product_category == "Drugs & Chemicals") %>% mutate(avg_sales = mean(c(avg_daily_sales, max_avg_daily_sales))) %>% summarise(dc_avg = sum(avg_sales)*365))/(mean(c(sum_dat$total_annual_sales, sum_dat$max_total_annual_sales)))*100,1)
+`%** of annual revenue comes from Drugs & Chemicals. Breaking this category down into its constituent subcategories indicates which types of drugs are most often purchased at DNM.
+
+```{r echo = FALSE, fig.align = 'center', fig.height = 4, fig.width = 7.5}
+p_subcat_plot <- dat %>%
+    filter(product_category == 'Drugs & Chemicals') %>%
+    group_by(product_subcategory) %>%
+    summarise(avg_annual_sales = sum((avg_daily_sales + max_avg_daily_sales)/2)*365) %>%
+    ggplot(aes(x = reorder(product_subcategory, avg_annual_sales), y = avg_annual_sales/1000000)) +
+    geom_bar(stat = 'identity', fill = 'springgreen3', alpha = 0.85) +
+    ggtitle("Drugs & Chemicals - Annual sales by product subcategory") +
+    theme_tufte(base_family = 'Tahoma') +
+    theme(panel.grid.major = element_line(size = 0.1, color = "grey"),
+          axis.text.y = element_text(size = 11),
+          axis.title.x=element_blank(), axis.title.y=element_blank(),
+          plot.title = element_text(hjust = 0.5, face = 'bold')) +
+    scale_y_continuous(labels = dollar_format(suffix = 'M')) +
+    coord_flip()
+
+p_subcat_plot
+```
+
+Despite what appears to be a few miscategorized products in the CVV & Cards subcategory, the majority of sales in the Drugs & Chemicals category come from Psychedelics, Cannabis & Hashish, and Stimulants. Together, these subcategories constitute **`r round((dat %>% filter(product_subcategory == "Psychedelics" | product_subcategory == "Cannabis & Hashish" | product_subcategory == "Stimulants") %>% mutate(avg_sales = mean(c(avg_daily_sales, max_avg_daily_sales))) %>% summarise(dc_avg = sum(avg_sales)*365))/(dat %>% filter(product_category == "Drugs & Chemicals") %>% mutate(avg_sales = mean(c(avg_daily_sales, max_avg_daily_sales))) %>% summarise(dc_avg = sum(avg_sales)*365))*100,1)`%** of Drugs & Chemicals revenues.
+
+Lastly, the top 10 products by revenue, regardless of the product category, are as follows.
+
+```{r echo = FALSE, fig.align = 'center', fig.height = 3.5, fig.width = 7.5}
+top10_plot <- dat %>%
+    mutate(subcat_product = paste(product_subcategory, product, sep = " | ")) %>%
+    group_by(subcat_product) %>%
+    summarise(avg_annual_sales = sum((avg_daily_sales + max_avg_daily_sales)/2)*365) %>%
+    top_n(n = 10, wt = avg_annual_sales) %>%
+    ggplot(aes(x = reorder(subcat_product, avg_annual_sales), y = avg_annual_sales/1000000)) +
+    geom_bar(stat = 'identity', fill = 'darkorange1', alpha = 0.85) +
+    ggtitle("Top 10 products by annual sales") +
+    theme_tufte(base_family = 'Tahoma') +
+    theme(panel.grid.major = element_line(size = 0.1, color = "grey"),
+          axis.text.y = element_text(size = 11),
+          axis.title.x=element_blank(), axis.title.y=element_blank(),
+          plot.title = element_text(hjust = 0.5, face = 'bold')) +
+    scale_y_continuous(labels = dollar_format(suffix = 'M')) +
+    coord_flip()
+
+top10_plot
+```
+
+By itself, the site's top product, LSD, generates **`r round((dat %>% filter(product == "LSD") %>% mutate(avg_sales = mean(c(avg_daily_sales, max_avg_daily_sales))) %>% summarise(dc_avg = sum(avg_sales)*365))/(mean(c(sum_dat$total_annual_sales, sum_dat$max_total_annual_sales)))*100,1)
+`%** of all revenues.
+
+### Links
+
+Github repo
+
+Traveling the Silk Road: A Measurement Analysis of a Large Anonymous Online Marketplace
+
+Sealed Complaint 13 MAG 2328: United States of America v. Ross William Ulbricht
+
+Deepdotweb's list of darknet markets
+
+Web scraping Chrome extension by Martins Balodis
