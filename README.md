@@ -15,6 +15,7 @@
 	* You are reading this right now.
 * UlbrichtCriminalComplaint.pdf
 	* Sealed Complaint 13 MAG 2328: United States of America v. Ross William Ulbricht
+	* https://krebsonsecurity.com/wp-content/uploads/2013/10/UlbrichtCriminalComplaint.pdf
 * data_processing.R
 	* R code used for loading, transforming, and plotting data
 
