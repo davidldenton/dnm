@@ -6,9 +6,10 @@
 	* PDF copy of "Traveling the Silk Road: A Measurement Analysis of a Large Anonymous Online Marketplace" by Nicolas Christin
 	* https://www.andrew.cmu.edu/user/nicolasc/publications/Christin-WWW13.pdf
 * DNM_project.Rmd
-	* R Markdown file for knitr report
+	* R Markdown file to generate HTML report using knitr
 * DNM_project.html
-	* Knitr generated html file
+	* HTML report
+	* http://htmlpreview.github.io/?https://github.com/davidldenton/dnm/blob/master/DNM_project.html 
 * DNM_sitemap.JSON
 	* JSON sitemap used for scraping online marketplace with Chrome extension by Martins Balodis
 * README.md
