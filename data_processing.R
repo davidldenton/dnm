@@ -36,7 +36,7 @@ dat <- raw_dat %>%
            avg_daily_sales = sales_in_period/days_for_sale,
            max_avg_daily_sales = max_sales_in_period/days_for_sale) %>%
     select(product_category = category_id, product_subcategory = subcategory_id, 
-           product = subcategory2_id, product_listing = detail_name, listing_date, scrape_date, 
+           product_name = subcategory2_id, product_listing = detail_name, listing_date, scrape_date, 
            quantity, max_quantity, price, days_for_sale, sales_in_period, max_sales_in_period, 
            avg_daily_sales, max_avg_daily_sales)
 
@@ -85,9 +85,9 @@ p_subcat_plot
 
 product_plot <- dat %>%
     filter(product_category == 'Drugs & Chemicals' & product_subcategory == 'Psychedelics') %>%
-    group_by(product) %>%
+    group_by(product_name) %>%
     summarise(avg_annual_sales = sum((avg_daily_sales + max_avg_daily_sales)/2)*365) %>%
-    ggplot(aes(x = reorder(product, avg_annual_sales), y = avg_annual_sales/1000000)) +
+    ggplot(aes(x = reorder(product_name, avg_annual_sales), y = avg_annual_sales/1000000)) +
     geom_bar(stat = 'identity', fill = 'dodgerblue4', alpha = 0.85) +
     ggtitle("Psychedelics - Annual sales by product") +
     theme_tufte(base_family = 'Tahoma') +
@@ -101,7 +101,7 @@ product_plot
 
 
 top10_plot <- dat %>%
-    mutate(subcat_product = paste(product_subcategory, product, sep = " - ")) %>%
+    mutate(subcat_product = paste(product_subcategory, product_name, sep = " - ")) %>%
     group_by(subcat_product) %>%
     summarise(avg_annual_sales = sum((avg_daily_sales + max_avg_daily_sales)/2)*365) %>%
     top_n(n = 10, wt = avg_annual_sales) %>%

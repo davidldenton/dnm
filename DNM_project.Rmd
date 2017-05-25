@@ -1,19 +1,19 @@
 ---
-title: "Annual sales estimation of an online black market"
+title: "Annual sales estimation of a darknet market"
 author: "David Denton"
-date: "5/18/2017"
+date: "5/25/2017"
 output: html_document
 ---
 
 ### Introduction
 
-The dark web is home to a multitude of Amazon-like marketplaces where one can purchase all manner of items, licit and illicit. One of the most famous of these sites is the Silk Road, a black market that sold illegal drugs until it was shut down by the United States FBI in October of 2013. One of the first of its kind, the Silk Road was structured as a Tor hidden serice and allowed anyone with a specialized web browser to purchase illegal drugs on the internet. [One study](https://www.andrew.cmu.edu/user/nicolasc/publications/Christin-WWW13.pdf) estimated that the site's annual revenue, based on data collected in 2011 and 2012, was \$14.4 Million U.S. Dollars. The ["Sealed Complaint 13 MAG 2328: United States of America v. Ross William Ulbricht"](https://krebsonsecurity.com/wp-content/uploads/2013/10/UlbrichtCriminalComplaint.pdf) suggests that annual revenues were even higher - approximately $80 Million.
+The darknet is home to a multitude of Amazon-like marketplaces where one can purchase all manner of items, licit and illicit. One of the most famous of these sites is the Silk Road, a black market that sold illegal drugs until it was shut down by the United States FBI in October of 2013. One of the first of its kind, the Silk Road was structured as a Tor hidden serice and allowed anyone with a specialized web browser to purchase illegal drugs on the internet. [One study](https://www.andrew.cmu.edu/user/nicolasc/publications/Christin-WWW13.pdf) estimated that the site's annual revenue, based on data collected in 2011 and 2012, was \$14.4 Million U.S. Dollars. The ["Sealed Complaint 13 MAG 2328: United States of America v. Ross William Ulbricht"](https://krebsonsecurity.com/wp-content/uploads/2013/10/UlbrichtCriminalComplaint.pdf) suggests that annual revenues were even higher - approximately $80 Million.
 
 Since the Silk Road's demise, [imitators have proliferated](https://www.deepdotweb.com/dark-net-market-comparison-chart/). Are they as successful as the original? What is the annual revenue of similar sites in 2017? These questions are hard to answer as sales data is not easy to obtain. However, one of these black markets, which wil be referred to as DNM, publishes the quantity sold for each of it's listings. Scraping this data from the site will create a data set that can be used to estimate annual revenue, as well as identify the items that generate those sales.
 
 ### Data collection and processing
 
-All active, non-auction, product listings from DNM were scraped in chunks between the dates of 4/17/17 and 5/13/17. The scraping was done with a Google Chrome extension developed by Martins Balodis. It can be found [here](https://chrome.google.com/webstore/detail/web-scraper/jnhgnonknehpejjnehehllkliplmbmhn). All of the resuting csv files are available in the github repository for this project. The JSON sitemap used for scraping is available there as well (DNM_sitemap.json).
+All active, non-auction, product listings from DNM were scraped in chunks between the dates of 4/17/17 and 5/13/17. The scraping was done with a Google Chrome extension developed by Martins Balodis. It can be found [here](https://chrome.google.com/webstore/detail/web-scraper/jnhgnonknehpejjnehehllkliplmbmhn). All of the resuting csv files are available in the [github repository](https://github.com/davidldenton/dnm) for this project. The JSON sitemap used for scraping is available there as well ([DNM_sitemap.json](https://github.com/davidldenton/dnm/blob/master/DNM_sitemap.json)).
 
 ```{r echo = FALSE}
 setwd("~/Google Drive/code/R/projects/DNM")
@@ -70,16 +70,16 @@ dat <- raw_dat %>%
            avg_daily_sales = sales_in_period/days_for_sale,
            max_avg_daily_sales = max_sales_in_period/days_for_sale) %>%
     select(product_category = category_id, product_subcategory = subcategory_id, 
-           product = subcategory2_id, product_listing = detail_name, listing_date, scrape_date, 
-           quantity, max_quantity, price, days_for_sale, sales_in_period, max_sales_in_period, 
-           avg_daily_sales, max_avg_daily_sales)
+           product_name = subcategory2_id, product_listing = detail_name, listing_date,
+           scrape_date, quantity, max_quantity, price, days_for_sale, sales_in_period, 
+           max_sales_in_period, avg_daily_sales, max_avg_daily_sales)
 ```
 
-For reference, the category hierarchy is as follows: product_category > product_subcategory > product
+For reference, the category hierarchy is as follows: product_category > product_subcategory > product_name
 
 ### Analysis
 
-A total of `r nrow(dat)` listings were scraped. These are all active, non-auction, product listings. The site lists a much higher number, typically between 200K and 300K, but most of these are inactive. There are some listings that were missed by the scraper, however. The listings on DNM were scraped by each individual product within each product subcategory. The site displays only the first 50 pages of listings for each of these products. In the few cases where all product listings cannot fit on 50 pages, some items were missed. This occured mostly within the 'Drugs & Chemicals' category. 'Psychedelics - LSD' and 'Ecstasy - MDMA', for example, exceed the 50 page limit. Fortunately, this seeems to have had little impact on the data. The listings are ordered by popularity, so the products that appear on the first 50 pages are the most actively sold. Using extremely precise search criteria to find some of the orphan product listings reveals mostly garbage listings composed of unreadable content, or products that have been listed for years without a sale.
+A total of `r nrow(dat)` listings were scraped. These are all active, non-auction, product listings. The site lists a much higher number, typically between 200K and 300K, but most of these are inactive. There are some listings that were missed by the scraper. The listings on DNM were scraped by each individual product name within each product subcategory. The site displays only the first 50 pages of listings for each of these products. In the few cases where all product listings cannot fit on 50 pages, some items were missed. This occured mostly within the 'Drugs & Chemicals' category. 'Psychedelics - LSD' and 'Ecstasy - MDMA', for example, exceed the 50 page limit. Fortunately, this seeems to have had little impact on the data. The listings are ordered by popularity, so the products that appear on the first 50 pages are the most actively sold. Using extremely precise search criteria to find some of the orphan product listings reveals mostly garbage listings composed of unreadable content, or products that have been listed for years without a sale.
 
 To estimate annual sales, three variables are required: price (P), quantity sold (QTY), and the number of days the listing has been active (DAYS).
 
@@ -113,9 +113,9 @@ kable(sum_dat_print, caption = "Summary sales statistics", align=rep('c', 4))
 
 Actual annual revenues are likely close to the average of the two estimates above. As such, DNM will generate approximately **\$`r round(mean(c(sum_dat$total_annual_sales/1000000, sum_dat$max_total_annual_sales/1000000)),0)` million** in 2017. The average commision percentage for the darknet markets listed at [deepdotweb](https://www.deepdotweb.com/dark-net-market-comparison-chart/) is **3.6%**. Assuming this figure is accurate, the operators of DNM stand to earn approximately **$14 million**. These sales figures are significantly higher than the most generous estimates of The Silk Road's revenues. Given this dramatic increase and the overall proliferation of darknet markets, it seems clear that online black markets have experienced tremendous growth in the years since the Silk Road was taken down by the FBI.
 
-### Charts
+### Appendix: Charts
 
-A few simple charts can help indicate which products are most commonly purchased at DNM. The following bar chart illustrates how much each product category contributes to the site's overall annual sales.
+A few simple charts can help identify which products are most commonly purchased at DNM. The following bar chart illustrates how much each product category contributes to the site's overall annual revenues.
 
 ```{r echo = FALSE, fig.align = 'center', fig.height = 4, fig.width = 7.5}
 p_cat_plot <- dat %>%
@@ -158,13 +158,13 @@ p_subcat_plot <- dat %>%
 p_subcat_plot
 ```
 
-Despite what appears to be a few miscategorized products in the CVV & Cards subcategory, the majority of sales in the Drugs & Chemicals category come from Psychedelics, Cannabis & Hashish, and Stimulants. Together, these subcategories constitute **`r round((dat %>% filter(product_subcategory == "Psychedelics" | product_subcategory == "Cannabis & Hashish" | product_subcategory == "Stimulants") %>% mutate(avg_sales = mean(c(avg_daily_sales, max_avg_daily_sales))) %>% summarise(dc_avg = sum(avg_sales)*365))/(dat %>% filter(product_category == "Drugs & Chemicals") %>% mutate(avg_sales = mean(c(avg_daily_sales, max_avg_daily_sales))) %>% summarise(dc_avg = sum(avg_sales)*365))*100,1)`%** of Drugs & Chemicals revenues.
+Despite what appears to be a few miscategorized products in the CVV & Cards subcategory, the majority of sales in the Drugs & Chemicals category come from Psychedelics, Cannabis & Hashish, and Stimulants. Together, these subcategories constitute **`r round((dat %>% filter(product_subcategory == "Psychedelics" | product_subcategory == "Cannabis & Hashish" | product_subcategory == "Stimulants") %>% mutate(avg_sales = mean(c(avg_daily_sales, max_avg_daily_sales))) %>% summarise(dc_avg = sum(avg_sales)*365))/(dat %>% filter(product_category == "Drugs & Chemicals") %>% mutate(avg_sales = mean(c(avg_daily_sales, max_avg_daily_sales))) %>% summarise(dc_avg = sum(avg_sales)*365))*100,1)`%** of revenues in the Drugs & Chemicals product category.
 
 Lastly, the top 10 products by revenue, regardless of the product category, are as follows.
 
 ```{r echo = FALSE, fig.align = 'center', fig.height = 3.5, fig.width = 7.5}
 top10_plot <- dat %>%
-    mutate(subcat_product = paste(product_subcategory, product, sep = " | ")) %>%
+    mutate(subcat_product = paste(product_subcategory, product_name, sep = " | ")) %>%
     group_by(subcat_product) %>%
     summarise(avg_annual_sales = sum((avg_daily_sales + max_avg_daily_sales)/2)*365) %>%
     top_n(n = 10, wt = avg_annual_sales) %>%
@@ -182,17 +182,18 @@ top10_plot <- dat %>%
 top10_plot
 ```
 
-By itself, the site's top product, LSD, generates **`r round((dat %>% filter(product == "LSD") %>% mutate(avg_sales = mean(c(avg_daily_sales, max_avg_daily_sales))) %>% summarise(dc_avg = sum(avg_sales)*365))/(mean(c(sum_dat$total_annual_sales, sum_dat$max_total_annual_sales)))*100,1)
+By itself, the site's top product, LSD, generates **`r round((dat %>% filter(product_name == "LSD") %>% mutate(avg_sales = mean(c(avg_daily_sales, max_avg_daily_sales))) %>% summarise(dc_avg = sum(avg_sales)*365))/(mean(c(sum_dat$total_annual_sales, sum_dat$max_total_annual_sales)))*100,1)
 `%** of all revenues.
 
 ### Links
 
-Github repo
-
-Traveling the Silk Road: A Measurement Analysis of a Large Anonymous Online Marketplace
-
-Sealed Complaint 13 MAG 2328: United States of America v. Ross William Ulbricht
-
-Deepdotweb's list of darknet markets
-
-Web scraping Chrome extension by Martins Balodis
+* Github repo
+    + http://https://github.com/davidldenton/dnm
+* Traveling the Silk Road: A Measurement Analysis of a Large Anonymous Online Marketplace
+    + https://www.andrew.cmu.edu/user/nicolasc/publications/Christin-WWW13.pdf
+* Sealed Complaint 13 MAG 2328: United States of America v. Ross William Ulbricht
+    + https://krebsonsecurity.com/wp-content/uploads/2013/10/UlbrichtCriminalComplaint.pdf
+* Deepdotweb's list of darknet markets
+    + https://www.deepdotweb.com/dark-net-market-comparison-chart/
+* Web scraping Chrome extension by Martins Balodis
+    + https://chrome.google.com/webstore/detail/web-scraper/jnhgnonknehpejjnehehllkliplmbmhn
