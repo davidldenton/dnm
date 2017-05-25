@@ -4,8 +4,6 @@ library(lubridate)
 library(ggthemes)
 library(scales)
 
-setwd("~/Google Drive/code/R/projects/DNM")
-
 read_func <- function(x){
     read_csv(x) %>% mutate(scrape_date = ymd(str_extract(x, '[0-9]{8}')))
 }

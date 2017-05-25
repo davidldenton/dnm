@@ -1,7 +1,7 @@
 ## Annual sales estimation of a darknet market
 
 * /data
-	* folder containing raw data files
+	* folder containing scraped raw data files from darknet market (DNM)
 * Christin-WWW13.pdf
 	* PDF copy of "Traveling the Silk Road: A Measurement Analysis of a Large Anonymous Online Marketplace" by Nicolas Christin
 	* https://www.andrew.cmu.edu/user/nicolasc/publications/Christin-WWW13.pdf
