@@ -188,7 +188,7 @@ By itself, the site's top product, LSD, generates **`r round((dat %>% filter(pro
 ### Links
 
 * Github repo
-    + http://https://github.com/davidldenton/dnm
+    + https://github.com/davidldenton/dnm
 * Traveling the Silk Road: A Measurement Analysis of a Large Anonymous Online Marketplace
     + https://www.andrew.cmu.edu/user/nicolasc/publications/Christin-WWW13.pdf
 * Sealed Complaint 13 MAG 2328: United States of America v. Ross William Ulbricht
