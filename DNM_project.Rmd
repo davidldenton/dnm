@@ -4,6 +4,7 @@ author: "David L Denton"
 date: "5/25/2017"
 output: html_document
 ---
+<base target="_top"/>
 
 ### Introduction
 

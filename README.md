@@ -1,5 +1,9 @@
 ## Annual sales estimation of a darknet market
 
+Thanks to some free time during jury duty, I was finally able to process some data that I had scraped from an darknet marketplace. The resulting analysis can be found here: https://rpubs.com/davidldenton/dnm
+
+Descriptions of the project files:
+
 * /data
 	* folder containing scraped raw data files from darknet market (DNM)
 * Christin-WWW13.pdf
