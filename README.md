@@ -1,6 +1,6 @@
 ## Annual sales estimation of a darknet market
 
-Thanks to some free time during jury duty, I was finally able to process some data that I had scraped from a darknet marketplace. The resulting analysis can be found here: https://rpubs.com/davidldenton/dnm
+Thanks to some free time during jury duty, I was finally able to process some data that I had scraped from a darknet marketplace. The resulting analysis can be found here: https://www.fishingwithdave.net/post/dnm/
 
 Descriptions of the project files:
 
